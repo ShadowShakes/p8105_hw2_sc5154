@@ -1,0 +1,144 @@
+---
+title: "p8105_hw2_sc5154"
+author: "Shaohan Chen"
+date: "2022-10-02"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(janitor)
+```
+
+## Problem 1
+
+The row data for NYC transit subway is:
+
+```{r, results = "hide"}
+subway_raw_data = read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv")
+```
+
+First we read and clean the data from the local file. And also retain the columns mentioned in the problem.
+
+```{r}
+subway_data = 
+  read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
+  janitor::clean_names(dat = .) %>%
+  select(.data = ., line:entry, vending, ada)
+```
+
+Next I conduct some further cleaning.
+
+Remove the rows and columns that are all `NA`s.
+
+```{r}
+subway_data %>%
+  remove_empty(., whic = c("rows")) %>%
+  remove_empty(., whic = c("cols")) 
+```
+
+Check the data types of the columns.
+```{r}
+summary(subway_data)
+```
+
+And I figure out that the route 8-11 have different data types from route 1-7. After checking specific data, it is because the route 8-11 is named by number. In order to avoid mistakes in further process like `pivot_longer`, I transform the data type of route 8-11 into characters.
+
+```{r}
+subway_data$route8 = as.character(subway_data$route8)
+subway_data$route9 = as.character(subway_data$route9)
+subway_data$route10 = as.character(subway_data$route10)
+subway_data$route11 = as.character(subway_data$route11)
+```
+
+Convert the entry variable from character to a logical variable
+
+```{r}
+subway_data$entry = recode(subway_data$entry, 'YES' = TRUE, 'NO' = FALSE)
+```
+
+The raw dataset contains 32 columns before my cleaning and tailor, which include various detailed descriptive elements of the NYC transit subway system, including the line index, station name, station size, the routes operated in the station, the entrance information, ada, station location and entrance location, etc.
+
+So far my data cleaning steps include: 
+1. `janitor::clean_names` to clean the column names.
+
+2. Remove the row and columns that are all `NA`s.
+
+3. Transform the types of route8-11 into characters for consisitency.
+
+4. Convert the `entry` column from 'YES' or 'NO' to the logical variable. 
+
+The dimension of the resulting dataset is:
+
+```{r}
+subway_data_rows = nrow(subway_data)
+subway_data_cols = ncol(subway_data)
+```
+
+
+Totally `r subway_data_rows` rows and `r subway_data_cols` columns.
+
+These data are not so tidy. The columns `route1` to `route11` contain too much `NA` values, which makes the dataset too wide. Route names and route numbers should be variables.
+
+```{r}
+subway_data %>% 
+  select(station_name, line) %>% 
+  distinct %>%
+  nrow
+```
+
+There are 465 distinct stations.
+
+```{r}
+subway_data %>% 
+  filter(ada == TRUE) %>% 
+  select(station_name, line) %>% 
+  distinct %>%
+  nrow
+```
+
+There are 84 stations that are ADA complaint.
+
+```{r}
+subway_data %>%
+  filter(vending == "NO") %>% 
+  pull(entry) %>% 
+  mean
+```
+
+The proportion of station entrances/exits without vending allow entrance is 0.3770.
+
+Next I reformat the data to make route number and route name be distinct variables.
+```{r}
+subway_tidy_data = 
+  subway_data %>% 
+    pivot_longer(
+      route1:route11,
+      names_to = "route_index",
+      values_to = "route_name") 
+head(subway_tidy_data,5)
+```
+
+Count the number of distinct stations that serve the A train.
+```{r}
+subway_tidy_data %>%
+  filter(route_name == "A") %>% 
+  select(station_name, line) %>% 
+  distinct %>%
+  nrow
+```
+Therefore, there are 60 distinct stations serve the A train.
+
+```{r}
+subway_tidy_data %>%
+  filter(route_name == "A", ada == TRUE) %>% 
+  select(station_name, line) %>% 
+  distinct %>%
+  nrow
+```
+Therefore, there are 17 distinct stations serve the A train and are ADA complaint.
