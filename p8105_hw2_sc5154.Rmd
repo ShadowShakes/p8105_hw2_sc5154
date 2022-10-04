@@ -12,7 +12,6 @@ knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
 Load necessary packages.
 ```{r}
 library(tidyverse)
-library(janitor)
 library(readxl)
 ```
 
@@ -31,17 +30,6 @@ subway_data =
   read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
   janitor::clean_names(dat = .) %>%
   select(.data = ., line:entry, vending, ada)
-```
-
-Next I conduct some further cleaning.
-
-Remove the rows and columns that are all `NA`s.
-
-```{r}
-subway_data = 
-  subway_data %>%
-    remove_empty(., whic = c("rows")) %>%
-    remove_empty(., whic = c("cols")) 
 ```
 
 And I figure out that the route 8-11 have different data types from route 1-7. After checking specific data, it is because the route 8-11 is named by number. In order to avoid mistakes in further process like `pivot_longer`, I transform the data type of route 8-11 into characters.
@@ -65,11 +53,9 @@ So far my data cleaning steps include:
 
 *1.*  `janitor::clean_names` to clean the column names.
 
-*2.* Remove the row and columns that are all `NA`s.
+*2.* Transform the types of route 8-11 into characters for consistency.
 
-*3.* Transform the types of route8-11 into characters for consistency.
-
-*4.* Convert the `entry` column from 'YES' or 'NO' to the logical variable. 
+*3.* Convert the `entry` column from 'YES' or 'NO' to the logical variable. 
 
 
 ```{r echo = FALSE}
