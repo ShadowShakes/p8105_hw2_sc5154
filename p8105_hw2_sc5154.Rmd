@@ -361,15 +361,6 @@ Arrange the dataset according to year and month, and organize so that those two 
 snp_data = 
   read_csv("Data/fivethirtyeight_datasets/snp.csv") %>%
   separate(data = ., date, c("month", "day", "year"), sep = "/") %>%
-  mutate(month = as.numeric(month)) %>%
-  select(year, month, close) %>%
-  arrange(year, month)
-```
-
-```{r}
-snp_data = 
-  read_csv("Data/fivethirtyeight_datasets/snp.csv") %>%
-  separate(data = ., date, c("month", "day", "year"), sep = "/") %>%
   mutate(month = as.numeric(month), year = as.integer(year), year = ifelse((year >= 50), year + 1900,
 year + 2000),) %>%
   arrange(year, month) %>%
