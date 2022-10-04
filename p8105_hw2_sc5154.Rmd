@@ -382,7 +382,7 @@ year + 2000),) %>%
 Next, read and tidy the unemployment data for further merging process.
 And make sure the key variables have the same name and take the same values.
 ```{r}
-unemployement_data = 
+unemployment_data = 
   read_csv("Data/fivethirtyeight_datasets/unemployment.csv") %>%
   janitor::clean_names(dat = .) %>%
   pivot_longer(
@@ -391,35 +391,38 @@ unemployement_data =
     names_to = "month",
     values_to = "unemployment"
   ) %>%
+  drop_na(unemployment) %>%
   mutate(month = recode(month,
   'jan' = 'January',
   'feb' = 'February',
   'mar' = 'March',
   'apr' = 'April',
+  'may' = 'May',
   'jun' = 'June',
   'jul' = 'July',
   'aug' = 'August',
   'sep' = 'September',
   'oct' = 'October',
   'nov' = 'November',
-  'dec' = 'December')) %>%
-  mutate(.data = ., year = as.integer(year), month = as.character(month))
+  'dec' = 'December'),
+  year = as.integer(year), 
+  month = as.character(month))
 ```
 
 Join the datasets altogether.
 ```{r}
 temp_merge_data =
   left_join(pols_month_data, snp_data, by = c("year" = "year", "month" = "month"))
-result_ljoin_fte_data = 
-  left_join(temp_merge_data, unemployement_data, by = c("year" = "year", "month" = "month"))
+result_fte_data = 
+  left_join(temp_merge_data, unemployment_data, by = c("year" = "year", "month" = "month"))
 ```
 
 The resulting dataset using `left_join` has some `NA`s in it.
 
 The result dataset by removing `NA`s can be computed:
 ```{r}
-result_fte_data = 
-  result_ljoin_fte_data %>%
+result_rmna_fte_data = 
+  result_fte_data %>%
   na.omit()
 ```
 
@@ -428,7 +431,7 @@ result_fte_data =
 ```{r}
 result_merge_fte_data =
   merge(pols_month_data, snp_data) %>%
-  merge(., unemployement_data)
+  merge(., unemployment_data)
 ```
 
 Write a short paragraph about these datasets:
@@ -438,45 +441,54 @@ rows_pols = nrow(pols_month_data)
 cols_pols = ncol(pols_month_data)
 rows_snp = nrow(snp_data)
 cols_snp = ncol(snp_data)
-rows_unem = nrow(unemployement_data)
-cols_unem = ncol(unemployement_data)
+rows_unem = nrow(unemployment_data)
+cols_unem = ncol(unemployment_data)
 
 rows_fte = nrow(result_fte_data)
 cols_fte = ncol(result_fte_data)
+rows_rmna_fte = nrow(result_rmna_fte_data)
+cols_rmna_fte = ncol(result_rmna_fte_data)
 range_year_fte = max(result_fte_data$year) - min(result_fte_data$year)
 ```
 
-* The first dataset pols_month_data contain `r rows_pols` observations of `r cols_pols` variables related to the number of national politicians(including president, governor, senator, representative) who are democratic or republican at any given time, which are indicated using variable like `president`, `gov_gop`, `sen_gop`, etc.
+* The first dataset `pols_month_data` contain `r rows_pols` observations of `r cols_pols` variables related to the number of national politicians(including president, governor, senator, representative) who are democratic or republican at any given time, which are indicated using variable like `president`, `gov_gop`, `sen_gop`, etc.
 
-* The second dataset snp_data contains `r rows_snp` observations of `r cols_snp` variables related to Standard & Poor's stock market index, and the `close` variable refers to the closing values of the stock index on the associated date.
+* The second dataset `snp_data` contains `r rows_snp` observations of `r cols_snp` variables related to Standard & Poor's stock market index, and the `close` variable refers to the closing values of the stock index on the associated date.
 
-* The third dataset unemployment_data contains `r rows_unem` observations of `r cols_unem` variables which indicate the percentage of unemployment in every month of different associated years using variable `unemployment`.
+* The third dataset `unemployment_data` contains `r rows_unem` observations of `r cols_unem` variables which indicate the percentage of unemployment in every month of different associated years using variable `unemployment`.
 
-* The merged dataset result_fte_data contains `r rows_fte` observations of `r cols_fte` variables, which merged the recorded variables from 3 separate datasets above, and provides a straightforward view of the whole data from multiple aspects, including metrics of time including `year`, `month`; metrics of politicians like `gov_gop`, `sen_gop`, `president`; and `close`, `unemployment_rate`. The range of years recorded in this dataset is `r range_year_fte`.
+* The merged dataset `result_rmna_fte_data` that has `NA` removed contains `r rows_rmna_fte` observations of `r cols_rmna_fte` variables
+
+* The merged dataset `result_fte_data` that uses `left_join` contains
+`r rows_fte` observations of `r cols_fte` variables., which merged the recorded variables from 3 separate datasets above, and provides a straightforward view of the whole data from multiple aspects, including metrics of time including `year`, `month`; metrics of politicians like `gov_gop`, `sen_gop`, `president`; and `close`, `unemployment_rate`. The range of years recorded in this dataset is `r range_year_fte`.
 
 ```{r echo = FALSE}
 avg_goppre_unemployment = 
   result_fte_data %>%
   filter(president == "gop") %>%
   pull(unemployment) %>%
+  na.omit() %>%
   mean
 
 avg_dempre_unemployment = 
   result_fte_data %>%
   filter(president == "dem") %>%
   pull(unemployment) %>%
+  na.omit() %>%
   mean
 
 avg_goppre_close = 
   result_fte_data %>%
   filter(president == "gop") %>%
   pull(close) %>%
+  na.omit() %>%
   mean
 
 avg_dempre_close = 
   result_fte_data %>%
   filter(president == "dem") %>%
   pull(close) %>%
+  na.omit() %>%
   mean
 ```
 
