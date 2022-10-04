@@ -9,10 +9,11 @@ output: github_document
 knitr::opts_chunk$set(collapse = TRUE, message = FALSE)
 ```
 
+Load necessary packages.
 ```{r}
 library(tidyverse)
-library(dplyr)
 library(janitor)
+library(readxl)
 ```
 
 ## Problem 1
@@ -37,14 +38,10 @@ Next I conduct some further cleaning.
 Remove the rows and columns that are all `NA`s.
 
 ```{r}
-subway_data %>%
-  remove_empty(., whic = c("rows")) %>%
-  remove_empty(., whic = c("cols")) 
-```
-
-Check the data types of the columns.
-```{r}
-summary(subway_data)
+subway_data = 
+  subway_data %>%
+    remove_empty(., whic = c("rows")) %>%
+    remove_empty(., whic = c("cols")) 
 ```
 
 And I figure out that the route 8-11 have different data types from route 1-7. After checking specific data, it is because the route 8-11 is named by number. In order to avoid mistakes in further process like `pivot_longer`, I transform the data type of route 8-11 into characters.
@@ -69,19 +66,17 @@ So far my data cleaning steps include:
 
 2. Remove the row and columns that are all `NA`s.
 
-3. Transform the types of route8-11 into characters for consisitency.
+3. Transform the types of route8-11 into characters for consistency.
 
 4. Convert the `entry` column from 'YES' or 'NO' to the logical variable. 
 
-The dimension of the resulting dataset is:
 
-```{r}
+```{r echo = FALSE}
 subway_data_rows = nrow(subway_data)
 subway_data_cols = ncol(subway_data)
 ```
 
-
-Totally `r subway_data_rows` rows and `r subway_data_cols` columns.
+The dimension of the resulting dataset is totally `r subway_data_rows` rows and `r subway_data_cols` columns.
 
 These data are not so tidy. The columns `route1` to `route11` contain too much `NA` values, which makes the dataset too wide. Route names and route numbers should be variables.
 
@@ -121,7 +116,6 @@ subway_tidy_data =
       route1:route11,
       names_to = "route_index",
       values_to = "route_name") 
-head(subway_tidy_data,5)
 ```
 
 Count the number of distinct stations that serve the A train.
@@ -142,3 +136,204 @@ subway_tidy_data %>%
   nrow
 ```
 Therefore, there are 17 distinct stations serve the A train and are ADA complaint.
+
+
+
+## Problem 2
+
+Read and clean the Mr.Trash Wheel dataset.
+
+1. Specify the sheet and omit non-data entries including the first row that contains figures and notes, and omit the columns from `O` that contain notes or filled with spaces using arguments in `read_excel()`.
+
+2. Clean the column names and rename some variables to make them more reasonable using `janitor::clean_names` and `rename()``.
+
+3. Omit the rows that do not include dumpster-specific data using `na.omit()`.
+
+4. Round the number of sports balls to the nearest integer and converts the result to an integer variable using `round()` and `as.integer`.
+```{r}
+mr_trash_data = 
+  read_excel("Data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", sheet = 1, skip = 1, range = cell_cols("A:N")) %>%
+  janitor::clean_names(dat = .) %>%
+  rename(.data = ., weight = weight_tons, volume = volume_cubic_yards) %>%
+  na.omit(.) %>%
+  mutate(.data = ., sports_balls = as.integer((round(sports_balls))))
+```
+
+
+And we repeat similar steps towards Professor Trash Wheel dataset.
+```{r}
+professor_trash_data = 
+  read_excel("Data/Trash-Wheel-Collection-Totals-7-2020-2.xlsx", sheet = 2, skip = 1, range = cell_cols("A:N")) %>%
+  janitor::clean_names(dat = .) %>%
+  rename(.data = ., weight = weight_tons, volume = volume_cubic_yards) %>%
+  na.omit(.) %>%
+  mutate(.data = ., sports_balls = as.integer((round(sports_balls))), dumpster = as.character(dumpster))
+```
+
+Then combine those two datasets to produce a single tidy dataset using `bind_rows`, and add an additional variable indicating which Trash Wheel is which to both datasets before combining.
+```{r}
+mr_trash_data  = 
+  mr_trash_data %>% 
+  mutate(.data = ., trash_wheel_type = "mr_trash_wheel")
+professor_trash_data =
+  professor_trash_data %>%
+  mutate(.data = ., trash_wheel_type = "professor_trash_wheel") 
+combine_trash_data = bind_rows(mr_trash_data, professor_trash_data)
+```
+
+
+```{r echo = FALSE}
+com_row = nrow(combine_trash_data)
+com_col = ncol(combine_trash_data)
+
+mr_row = nrow(mr_trash_data)
+pro_row = nrow(professor_trash_data)
+
+total_weight_mr = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2014 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2014") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2015 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2015") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2016 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2016") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2017 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2017") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2018 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2018") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2019 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2019") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_mr_2020 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2020") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_pro = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_pro_2017 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel", year == "2017") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_pro_2018 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel", year == "2018") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_pro_2019 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel", year == "2019") %>% 
+  pull(weight) %>% 
+  sum
+
+total_weight_pro_2020 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel", year == "2020") %>% 
+  pull(weight) %>% 
+  sum
+
+total_volumn_mr = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel") %>% 
+  pull(volume) %>% 
+  sum
+
+total_volumn_pro = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel") %>% 
+  pull(volume) %>% 
+  sum
+
+total_power_mr = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel") %>% 
+  pull(homes_powered) %>% 
+  sum %>%
+  round
+
+total_power_pro = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel") %>% 
+  pull(homes_powered) %>% 
+  sum %>%
+  round
+```
+
+
+
+```{r}
+total_weight_professor = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "professor_trash_wheel") %>%
+  pull(weight) %>%
+  sum
+```
+
+
+```{r}
+total_number_balls_2020 = 
+  combine_trash_data %>%
+  filter(trash_wheel_type == "mr_trash_wheel", year == "2020") %>%
+  pull(sports_balls) %>%
+  sum
+```
+
+Write a paragraph about these data:
+
+The combined dataset has `r com_row` rows and `r com_col` columns, with `r mr_row` rows of Mr. Trash Wheel and `r pro_row` of Professor Trash Wheel.
+
+The combined dataset's variables include the dumpster index, collected time (day/month/year), trash weight, trash volume, trash amount on different kinds(plastic bottle, polystyrene, etc.), the power for homes generated by trash, and the manually added trash wheel type.
+
+
+The total trash weight collected by Mr. Trash Wheel is `r total_weight_mr`.
+And the total weight each year from 2014 to 2020 is:
+`r total_weight_mr_2014`, `r total_weight_mr_2015`, `r total_weight_mr_2016`, `r total_weight_mr_2017`, `r total_weight_mr_2018`, `r total_weight_mr_2019`, `r total_weight_mr_2020`.
+
+The total trash weight collected by Professor Trash Wheel is `r total_weight_pro`.
+
+And the total weight each year from 2017 to 2020 is:
+`r total_weight_pro_2017`, `r total_weight_pro_2018`, `r total_weight_pro_2019`, `r total_weight_pro_2020`.
+
+The total trash volume collected by Mr. Trash Wheel is `r total_volumn_mr`.    
+The total trash volume collected by Professor Trash Wheel is `r total_volumn_pro`.
+
+The total homes powered by Mr. Trash Wheel is `r total_power_mr`.
+The total homes powered by Professor Trash Wheel is `r total_power_pro`.
+
+The total weight of trash collected by Professor Trash Wheel is `r total_weight_professor`.
+The total number of sports balls collected by Mr. Trash Wheel is `r total_number_balls_2020`.
