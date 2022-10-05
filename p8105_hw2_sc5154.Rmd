@@ -20,13 +20,13 @@ library(readxl)
 The row data for NYC transit subway is:
 
 ```{r, results = "hide"}
-subway_raw_data = read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv")
+subway_raw_df = read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv")
 ```
 
 First we read and clean the data from the local file. And also retain the columns mentioned in the problem.
 
 ```{r}
-subway_data = 
+subway_df = 
   read_csv("Data/NYC_Transit_Subway_Entrance_And_Exit_Data.csv") %>%
   janitor::clean_names(dat = .) %>%
   select(.data = ., line:entry, vending, ada)
@@ -35,16 +35,16 @@ subway_data =
 And I figure out that the route 8-11 have different data types from route 1-7. After checking specific data, it is because the route 8-11 is named by number. In order to avoid mistakes in further process like `pivot_longer`, I transform the data type of route 8-11 into characters.
 
 ```{r}
-subway_data$route8 = as.character(subway_data$route8)
-subway_data$route9 = as.character(subway_data$route9)
-subway_data$route10 = as.character(subway_data$route10)
-subway_data$route11 = as.character(subway_data$route11)
+subway_df$route8 = as.character(subway_df$route8)
+subway_df$route9 = as.character(subway_df$route9)
+subway_df$route10 = as.character(subway_df$route10)
+subway_df$route11 = as.character(subway_df$route11)
 ```
 
 Convert the entry variable from character to a logical variable
 
 ```{r}
-subway_data$entry = recode(subway_data$entry, 'YES' = TRUE, 'NO' = FALSE)
+subway_df$entry = recode(subway_df$entry, 'YES' = TRUE, 'NO' = FALSE)
 ```
 
 The raw dataset contains 32 columns before my cleaning and tailor, which include various detailed descriptive elements of the NYC transit subway system, including the line index, station name, station size, the routes operated in the station, the entrance information, ada, station location and entrance location, etc.
@@ -59,16 +59,16 @@ So far my data cleaning steps include:
 
 
 ```{r echo = FALSE}
-subway_data_rows = nrow(subway_data)
-subway_data_cols = ncol(subway_data)
+subway_df_rows = nrow(subway_df)
+subway_df_cols = ncol(subway_df)
 ```
 
-The dimension of the resulting dataset is totally `r subway_data_rows` rows and `r subway_data_cols` columns.
+The dimension of the resulting dataset is totally `r subway_df_rows` rows and `r subway_df_cols` columns.
 
 These data are not so tidy. The columns `route1` to `route11` contain too much `NA` values, which makes the dataset too wide. Route names and route numbers should be variables.
 
 ```{r}
-subway_data %>% 
+subway_df %>% 
   select(station_name, line) %>% 
   distinct %>%
   nrow
@@ -77,7 +77,7 @@ subway_data %>%
 There are 465 distinct stations.
 
 ```{r}
-subway_data %>% 
+subway_df %>% 
   filter(ada == TRUE) %>% 
   select(station_name, line) %>% 
   distinct %>%
@@ -87,7 +87,7 @@ subway_data %>%
 There are 84 stations that are ADA complaint.
 
 ```{r}
-subway_data %>%
+subway_df %>%
   filter(vending == "NO") %>% 
   pull(entry) %>% 
   mean
@@ -97,8 +97,8 @@ The proportion of station entrances/exits without vending allow entrance is 0.37
 
 Next I reformat the data to make route number and route name be distinct variables.
 ```{r}
-subway_tidy_data = 
-  subway_data %>% 
+subway_tidy_df = 
+  subway_df %>% 
     pivot_longer(
       route1:route11,
       names_to = "route_index",
@@ -107,7 +107,7 @@ subway_tidy_data =
 
 Count the number of distinct stations that serve the A train.
 ```{r}
-subway_tidy_data %>%
+subway_tidy_df %>%
   filter(route_name == "A") %>% 
   select(station_name, line) %>% 
   distinct %>%
@@ -116,7 +116,7 @@ subway_tidy_data %>%
 Therefore, there are 60 distinct stations serve the A train.
 
 ```{r}
-subway_tidy_data %>%
+subway_tidy_df %>%
   filter(route_name == "A", ada == TRUE) %>% 
   select(station_name, line) %>% 
   distinct %>%
@@ -138,8 +138,8 @@ Read and clean the Mr.Trash Wheel dataset.
 
 *4.* Round the number of sports balls to the nearest integer and converts the result to an integer variable using `round()` and `as.integer`.
 ```{r}
-mr_trash_data = 
-  read_excel("Data/Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1, range = cell_cols("A:N")) %>%
+mr_trash_df = 
+  read_excel("Data/Trash Wheel Collection Data.xlsx", sheet = 1, skip = 1, range = "A2:N549") %>%
   janitor::clean_names(dat = .) %>%
   rename(.data = ., weight = weight_tons, volume = volume_cubic_yards) %>%
   drop_na(dumpster, year, date) %>%
@@ -149,8 +149,8 @@ mr_trash_data =
 
 And we repeat similar steps towards Professor Trash Wheel dataset.
 ```{r}
-professor_trash_data = 
-  read_excel("Data/Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1, range = cell_cols("A:M")) %>%
+professor_trash_df = 
+  read_excel("Data/Trash Wheel Collection Data.xlsx", sheet = 2, skip = 1, range = "A2:M96") %>%
   janitor::clean_names(dat = .) %>%
   rename(.data = ., weight = weight_tons, volume = volume_cubic_yards) %>%
   drop_na(dumpster, year, date) %>%
@@ -159,115 +159,115 @@ professor_trash_data =
 
 Then combine those two datasets to produce a single tidy dataset using `bind_rows`, and add an additional variable indicating which Trash Wheel is which to both datasets before combining.
 ```{r}
-mr_trash_data  = 
-  mr_trash_data %>% 
+mr_trash_df  = 
+  mr_trash_df %>% 
   mutate(.data = ., trash_wheel_type = "mr_trash_wheel")
-professor_trash_data =
-  professor_trash_data %>%
+professor_trash_df =
+  professor_trash_df %>%
   mutate(.data = ., trash_wheel_type = "professor_trash_wheel") 
-combine_trash_data = bind_rows(mr_trash_data, professor_trash_data)
+combine_trash_df = bind_rows(mr_trash_df, professor_trash_df)
 ```
 
 
 ```{r echo = FALSE}
-com_row = nrow(combine_trash_data)
-com_col = ncol(combine_trash_data)
+com_row = nrow(combine_trash_df)
+com_col = ncol(combine_trash_df)
 
-mr_row = nrow(mr_trash_data)
-pro_row = nrow(professor_trash_data)
+mr_row = nrow(mr_trash_df)
+pro_row = nrow(professor_trash_df)
 
 total_weight_mr = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2014 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2014") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2015 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2015") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2016 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2016") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2017 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2017") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2018 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2018") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2019 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2019") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_mr_2020 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2020") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_pro = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_pro_2017 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel", year == "2017") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_pro_2018 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel", year == "2018") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_pro_2019 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel", year == "2019") %>% 
   pull(weight) %>% 
   sum
 
 total_weight_pro_2020 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel", year == "2020") %>% 
   pull(weight) %>% 
   sum
 
 total_volumn_mr = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel") %>% 
   pull(volume) %>% 
   sum
 
 total_volumn_pro = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel") %>% 
   pull(volume) %>% 
   sum
 
 total_power_mr = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel") %>% 
   pull(homes_powered) %>% 
   na.omit() %>%
@@ -275,7 +275,7 @@ total_power_mr =
   round
 
 total_power_pro = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel") %>% 
   pull(homes_powered) %>% 
   na.omit() %>%
@@ -286,17 +286,17 @@ total_power_pro =
 
 Write a paragraph about these data:
 
-* The two separate datasets denoted as `mr_trash_data` and `professor_trash_data` respectively record the information of trash collected from two different wheels called "Mr. Trash Wheel" and "Professor Trash Wheel". Those two datasets have similar variables and data types. It can been seen from the data that Professor Trash Wheel operated later than Mr. Trash Wheel.  
+* The two separate datasets denoted as `mr_trash_df` and `professor_trash_df` respectively record the information of trash collected from two different wheels called "Mr. Trash Wheel" and "Professor Trash Wheel". Those two datasets have similar variables and data types. It can been seen from the data that Professor Trash Wheel operated later than Mr. Trash Wheel.  
 
-* The combined dataset `combine_trash_data` has `r com_row` rows and `r com_col` columns, with `r mr_row` rows of data from Mr. Trash Wheel and `r pro_row` rows of data from Professor Trash Wheel.
+* The combined dataset `combine_trash_df` has `r com_row` rows and `r com_col` columns, with `r mr_row` rows of data from Mr. Trash Wheel and `r pro_row` rows of data from Professor Trash Wheel.
 
 * The combined dataset's variables include the `dumpster`, collected time       `month`, `year`, `date`; trash information `weight`, `volume`; trash kind `plastic_bottle`, `polystyrene`, etc., the power for homes generated by trash `homes_powered`, and the manually added variable `trash_wheel_type`.
 
 * The example values take by those variables could be seen as:
 ```{r}
-head(combine_trash_data[1:5],5)
-head(combine_trash_data[6:10],5)
-head(combine_trash_data[11:15],5)
+head(combine_trash_df[1:5],5)
+head(combine_trash_df[6:10],5)
+head(combine_trash_df[11:15],5)
 ```
 
 
@@ -318,7 +318,7 @@ head(combine_trash_data[11:15],5)
 For the last question in problem 2:
 ```{r}
 total_weight_professor = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "professor_trash_wheel") %>%
   pull(weight) %>%
   sum
@@ -326,7 +326,7 @@ total_weight_professor =
 
 ```{r}
 total_number_balls_2020 = 
-  combine_trash_data %>%
+  combine_trash_df %>%
   filter(trash_wheel_type == "mr_trash_wheel", year == "2020") %>%
   pull(sports_balls) %>%
   na.omit() %>%
@@ -346,9 +346,9 @@ The total number of sports balls collected by Mr. Trash Wheel is `r total_number
 
 *3.* Create a `president` variable taking values from `gop` and `dem`, and remove the variable `prez_dem` and `prez_gop`, and `day`.
 
-(Note that the data in column `prez_gop` appears value `2` which is not in the description of the dataset, it may be a mistake within the dataset.)
+(Note that the data in column `prez_gop` appears value `2` which is not in the description of the dataset, it may be a mistake within the dataset. I check online that in the corresponding time period the president was a republican politician. At the mean time, the corresponding `prez_dem`'s value are set as `0`. Therefore, the value `2` could temporarily be seen as an indicator for republican politicians.)
 ```{r}
-pols_month_data = 
+pols_month_df = 
   read_csv("Data/fivethirtyeight_datasets/pols-month.csv") %>%
   janitor::clean_names(dat = .) %>%
   separate(data = ., mon, c("year", "month", "day"), sep = "-", convert = TRUE) %>%
@@ -361,7 +361,7 @@ Next read and clean the data in snp.csv using a similar process. Note that we ne
 Arrange the dataset according to year and month, and organize so that those two variables are leading columns.
 
 ```{r}
-snp_data = 
+snp_df = 
   read_csv("Data/fivethirtyeight_datasets/snp.csv") %>%
   janitor::clean_names(dat = .) %>%
   separate(data = ., date, c("month", "day", "year"), sep = "/", convert = TRUE) %>%
@@ -375,7 +375,7 @@ year + 2000),) %>%
 Next, read and tidy the unemployment data for further merging process.
 And make sure the key variables have the same name and take the same values.
 ```{r}
-unemployment_data = 
+unemployment_df = 
   read_csv("Data/fivethirtyeight_datasets/unemployment.csv") %>%
   janitor::clean_names(dat = .) %>%
   pivot_longer(
@@ -402,83 +402,85 @@ unemployment_data =
   month = as.character(month))
 ```
 
-Join the datasets altogether.
+Merge the datasets together.
 ```{r}
-temp_merge_data =
-  left_join(pols_month_data, snp_data, by = c("year" = "year", "month" = "month"))
-result_fte_data = 
-  left_join(temp_merge_data, unemployment_data, by = c("year" = "year", "month" = "month"))
+temp_merge_df =
+  left_join(pols_month_df, snp_df, by = c("year" = "year", "month" = "month"))
+result_fte_df = 
+  left_join(temp_merge_df, unemployment_df, by = c("year" = "year", "month" = "month"))
 ```
 
 The resulting dataset using `left_join` has some `NA`s in it.
 
-The result dataset by removing `NA`s can be computed:
+If we want to remove `NA`:
 ```{r}
-result_rmna_fte_data = 
-  result_fte_data %>%
+result_rmna_fte_df = 
+  result_fte_df %>%
   na.omit()
 ```
 
 (Note: we can also use `merge` function after Google, as shows below:)
 
 ```{r}
-result_merge_fte_data =
-  merge(pols_month_data, snp_data) %>%
-  merge(., unemployment_data)
+result_merge_fte_df =
+  merge(pols_month_df, snp_df) %>%
+  merge(., unemployment_df)
 ```
+
+For this problem, we take left join result `result_fte_df` for further operation.
 
 Write a short paragraph about these datasets:
 
 ```{r echo = FALSE}
-rows_pols = nrow(pols_month_data)
-cols_pols = ncol(pols_month_data)
-rows_snp = nrow(snp_data)
-cols_snp = ncol(snp_data)
-rows_unem = nrow(unemployment_data)
-cols_unem = ncol(unemployment_data)
+rows_pols = nrow(pols_month_df)
+cols_pols = ncol(pols_month_df)
+rows_snp = nrow(snp_df)
+cols_snp = ncol(snp_df)
+rows_unem = nrow(unemployment_df)
+cols_unem = ncol(unemployment_df)
 
-rows_fte = nrow(result_fte_data)
-cols_fte = ncol(result_fte_data)
-rows_rmna_fte = nrow(result_rmna_fte_data)
-cols_rmna_fte = ncol(result_rmna_fte_data)
-range_year_fte = max(result_fte_data$year) - min(result_fte_data$year)
+rows_fte = nrow(result_fte_df)
+cols_fte = ncol(result_fte_df)
+rows_rmna_fte = nrow(result_rmna_fte_df)
+cols_rmna_fte = ncol(result_rmna_fte_df)
+range_year_fte = max(result_fte_df$year) - min(result_fte_df$year)
 ```
 
-* The first dataset `pols_month_data` contain `r rows_pols` observations of `r cols_pols` variables related to the number of national politicians(including president, governor, senator, representative) who are democratic or republican at any given time, which are indicated using variable like `president`, `gov_gop`, `sen_gop`, etc.
+* The first dataset `pols_month_df` contain `r rows_pols` observations of `r cols_pols` variables related to the number of national politicians(including president, governor, senator, representative) who are democratic or republican at any given time, which are indicated using variable like `president`, `gov_gop`, `sen_gop`, etc.
 
-* The second dataset `snp_data` contains `r rows_snp` observations of `r cols_snp` variables related to Standard & Poor's stock market index, and the `close` variable refers to the closing values of the stock index on the associated date.
+* The second dataset `snp_df` contains `r rows_snp` observations of `r cols_snp` variables related to Standard & Poor's stock market index, and the `close` variable refers to the closing values of the stock index on the associated date.
 
-* The third dataset `unemployment_data` contains `r rows_unem` observations of `r cols_unem` variables which indicate the percentage of unemployment in every month of different associated years using variable `unemployment`.
+* The third dataset `unemployment_df` contains `r rows_unem` observations of `r cols_unem` variables which indicate the percentage of unemployment in every month of different associated years using variable `unemployment`.
 
-* The merged dataset `result_rmna_fte_data` that has `NA` removed contains `r rows_rmna_fte` observations of `r cols_rmna_fte` variables
+* The merged dataset `result_rmna_fte_df` that has `NA` removed contains `r rows_rmna_fte` observations of `r cols_rmna_fte` variables
 
-* The merged dataset `result_fte_data` that uses `left_join` contains
+* The merged dataset `result_fte_df` that uses `left_join` contains
 `r rows_fte` observations of `r cols_fte` variables., which merged the recorded variables from 3 separate datasets above, and provides a straightforward view of the whole data from multiple aspects, including metrics of time including `year`, `month`; metrics of politicians like `gov_gop`, `sen_gop`, `president`; and `close`, `unemployment_rate`. The range of years recorded in this dataset is `r range_year_fte`.
 
 ```{r echo = FALSE}
 avg_goppre_unemployment = 
-  result_fte_data %>%
+  result_fte_df %>%
   filter(president == "gop") %>%
   pull(unemployment) %>%
   na.omit() %>%
   mean
 
 avg_dempre_unemployment = 
-  result_fte_data %>%
+  result_fte_df %>%
   filter(president == "dem") %>%
   pull(unemployment) %>%
   na.omit() %>%
   mean
 
 avg_goppre_close = 
-  result_fte_data %>%
+  result_fte_df %>%
   filter(president == "gop") %>%
   pull(close) %>%
   na.omit() %>%
   mean
 
 avg_dempre_close = 
-  result_fte_data %>%
+  result_fte_df %>%
   filter(president == "dem") %>%
   pull(close) %>%
   na.omit() %>%
